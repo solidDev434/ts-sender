@@ -8,7 +8,7 @@ import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 
 const projectID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!;
 
-const config = getDefaultConfig({
+export const config = getDefaultConfig({
   appName: "TSender",
   projectId: projectID,
   chains: [anvil, zksync],
