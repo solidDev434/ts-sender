@@ -1,3 +1,9 @@
+import AirdropForm from "@/components/AirdropForm";
+
 export default function Home() {
-  return <div>Ho</div>;
+  return (
+    <div>
+      <AirdropForm />
+    </div>
+  );
 }
