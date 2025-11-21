@@ -1,19 +1,23 @@
 "use client";
 
-import { useState } from "react";
-import { useAccount, useChainId, useConfig } from "wagmi";
-import { readContract } from "@wagmi/core";
+import { useMemo, useState } from "react";
+import { useAccount, useChainId, useConfig, useWriteContract } from "wagmi";
+import { readContract, waitForTransactionReceipt } from "@wagmi/core";
+
 import InputField from "@/components/ui/InputField";
 import { chainsToTSender, erc20Abi, tsenderAbi } from "@/constants";
+import { calculateTotal } from "@/utils";
+import { parseEther } from "viem";
 
 const AirdropForm = () => {
   const chainId = useChainId();
+  const { writeContractAsync, isPending, data: hash } = useWriteContract();
   const config = useConfig();
   const account = useAccount();
   const [tokenAddress, setTokenAddress] = useState("");
   const [recipients, setRecipients] = useState("");
   const [amounts, setAmounts] = useState("");
-  console.log(chainId);
+  const total: number = useMemo(() => calculateTotal(amounts), [amounts]);
 
   const getApprovedAmount = async (
     tSenderAddress: string | null
@@ -22,7 +26,6 @@ const AirdropForm = () => {
       alert("No address found, please use a supported chain");
       return 0;
     }
-    console.log(tSenderAddress);
 
     const response = await readContract(config, {
       abi: erc20Abi,
@@ -30,20 +33,83 @@ const AirdropForm = () => {
       functionName: "allowance",
       args: [account.address, tSenderAddress as `0x${string}`],
     });
-    console.log(response);
 
     return response as number;
   };
 
+  console.log(
+    amounts
+      .split(/[,\n]+/)
+      .map((amt) => amt.trim())
+      .filter((amt) => amt !== "")
+      .map((amt) => parseEther(amt)),
+    tokenAddress,
+    BigInt(total),
+    parseEther(`${total}`)
+  );
+
+  // Mint address: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
   const handleSubmit = async () => {
-    console.log(tokenAddress, recipients, amounts);
     // 1. Approve our tsender contract to send our tokens
     // 1a. If already approved, move to step 2
     // 2. Call the airdrop function on our tsender contract
     // 3. Wait for transaction to be mined
     const tsenderAddress = chainsToTSender[chainId]["tsender"];
     const approvedAmount = await getApprovedAmount(tsenderAddress);
-    console.log(approvedAmount);
+
+    if (approvedAmount < total) {
+      const approvalHash = await writeContractAsync({
+        abi: erc20Abi,
+        address: tokenAddress as `0x${string}`,
+        functionName: "approve",
+        args: [tsenderAddress, parseEther(`${total}`)],
+      });
+      const approvalReceipt = await waitForTransactionReceipt(config, {
+        hash: approvalHash,
+      });
+      console.log("Approval confirmed", approvalReceipt);
+
+      await writeContractAsync({
+        abi: tsenderAbi,
+        address: tsenderAddress as `0x${string}`,
+        functionName: "airdropERC20",
+        args: [
+          tokenAddress,
+          recipients
+            .split(/[,\n]+/)
+            .map((addr) => addr.trim())
+            .filter((addr) => addr !== ""),
+          amounts
+            .split(/[,\n]+/)
+            .map((amt) => amt.trim())
+            .filter((amt) => amt !== "")
+            .map((amt) => parseEther(amt)),
+          parseEther(`${total}`),
+        ],
+      });
+    } else {
+      await writeContractAsync({
+        abi: tsenderAbi,
+        address: tsenderAddress as `0x${string}`,
+        functionName: "airdropERC20",
+        args: [
+          tokenAddress,
+          recipients
+            .split(/[,\n]+/)
+            .map((addr) => addr.trim())
+            .filter((addr) => addr !== ""),
+          amounts
+            .split(/[,\n]+/)
+            .map((amt) => amt.trim())
+            .filter((amt) => amt !== "")
+            .map((amt) => parseEther(amt)),
+          parseEther(`${total}`),
+        ],
+      });
+      console.log("successful");
+    }
+
+    console.log("reading", approvedAmount);
   };
 
   return (
