@@ -1,4 +1,6 @@
 import React from "react";
+import { Input } from "./input";
+import { Textarea } from "./textarea";
 
 interface InputFieldProps {
   label: string;
@@ -28,29 +30,27 @@ const InputField = ({
       {label && (
         <label
           htmlFor={inputId}
-          className="block text-sm font-medium text-gray-700"
+          className="block text-sm font-semibold text-gray-700"
         >
           {label}
         </label>
       )}
 
       {large ? (
-        <textarea
+        <Textarea
           id={inputId}
           placeholder={placeholder}
           value={value}
           onChange={onChange}
-          className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           rows={4}
         />
       ) : (
-        <input
+        <Input
           id={inputId}
           type={type}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
-          className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
         />
       )}
     </div>
