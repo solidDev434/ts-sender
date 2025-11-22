@@ -76,6 +76,10 @@ const AirdropForm = () => {
   );
 
   const message = useMemo(() => {
+    if (!account.isConnected) {
+      return "Connect wallet";
+    }
+
     if (total > tokenBalance) {
       return "Insufficient Balance";
     }
@@ -97,7 +101,15 @@ const AirdropForm = () => {
     }
 
     return "Send Tokens";
-  }, [tokenBalance, total, isPending, isConfirming, error, isError]);
+  }, [
+    tokenBalance,
+    total,
+    isPending,
+    isConfirming,
+    error,
+    isError,
+    account.isConnected,
+  ]);
 
   useEffect(() => {
     const savedTokenAddress = localStorage.getItem("tokenAddress");
@@ -202,6 +214,7 @@ const AirdropForm = () => {
         placeholder="0x"
         value={tokenAddress}
         onChange={(e) => setTokenAddress(e.target.value)}
+        disabled={!account.isConnected}
       />
 
       <InputField
@@ -209,6 +222,7 @@ const AirdropForm = () => {
         placeholder="0x123..., 0x456..."
         value={recipients}
         onChange={(e) => setRecipients(e.target.value)}
+        disabled={!account.isConnected}
         large
       />
 
@@ -217,6 +231,7 @@ const AirdropForm = () => {
         placeholder="100,200,300..."
         value={amounts}
         onChange={(e) => setAmounts(e.target.value)}
+        disabled={!account.isConnected}
         large
       />
 

@@ -11,6 +11,7 @@ interface InputFieldProps {
   placeholder: string;
   type?: string;
   large?: boolean;
+  disabled?: boolean;
 }
 
 const InputField = ({
@@ -20,6 +21,7 @@ const InputField = ({
   onChange,
   type = "text",
   large = false,
+  disabled = false,
 }: InputFieldProps) => {
   const inputId = label
     ? label.toLowerCase().replace(/\s+/g, "-")
@@ -42,6 +44,7 @@ const InputField = ({
           placeholder={placeholder}
           value={value}
           onChange={onChange}
+          disabled={disabled}
           rows={4}
         />
       ) : (
@@ -50,6 +53,7 @@ const InputField = ({
           type={type}
           value={value}
           onChange={onChange}
+          disabled={disabled}
           placeholder={placeholder}
         />
       )}
