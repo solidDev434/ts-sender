@@ -1,33 +1,125 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useAccount, useChainId, useConfig, useWriteContract } from "wagmi";
+import { useEffect, useMemo, useState } from "react";
+import {
+  useAccount,
+  useChainId,
+  useReadContracts,
+  useConfig,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
 import { readContract, waitForTransactionReceipt } from "@wagmi/core";
-import { useAccountModal } from "@rainbow-me/rainbowkit";
 
 import InputField from "@/components/ui/InputField";
 import { chainsToTSender, erc20Abi, tsenderAbi } from "@/constants";
 import { calculateTotal } from "@/utils";
-import { parseEther } from "viem";
+import { formatUnits, parseEther } from "viem";
 import { Button } from "./ui/button";
 
 const AirdropForm = () => {
   const chainId = useChainId();
-  const { writeContractAsync, isPending, data: hash } = useWriteContract();
+  const {
+    writeContractAsync,
+    isPending,
+    error,
+    data: hash,
+  } = useWriteContract();
+  const {
+    isLoading: isConfirming,
+    isSuccess: isConfirmed,
+    isError,
+  } = useWaitForTransactionReceipt({
+    confirmations: 1,
+    hash,
+  });
   const config = useConfig();
   const account = useAccount();
-  const { accountModalOpen } = useAccountModal();
-
-  console.log(accountModalOpen);
-
   const [tokenAddress, setTokenAddress] = useState("");
   const [recipients, setRecipients] = useState("");
   const [amounts, setAmounts] = useState("");
   const total: number = useMemo(() => calculateTotal(amounts), [amounts]);
+  const contract = useReadContracts({
+    contracts: [
+      {
+        abi: erc20Abi,
+        address: tokenAddress as `0x${string}`,
+        functionName: "name",
+      },
+      {
+        abi: erc20Abi,
+        address: tokenAddress as `0x${string}`,
+        functionName: "decimals",
+      },
+      {
+        abi: erc20Abi,
+        address: tokenAddress as `0x${string}`,
+        functionName: "balanceOf",
+        args: [account.address],
+      },
+    ],
+  });
+  const tokenBalance =
+    Number(
+      formatUnits(
+        (contract.data?.[2].result as bigint) ?? 0,
+        (contract.data?.[1].result as number) ?? 18
+      )
+    ) ?? 0;
   const isValid = useMemo(
-    () => tokenAddress && amounts && recipients,
-    [tokenAddress, amounts, recipients]
+    () =>
+      tokenAddress !== "" &&
+      amounts !== "" &&
+      recipients !== "" &&
+      total <= tokenBalance,
+    [tokenAddress, amounts, recipients, tokenBalance, total]
   );
+
+  const message = useMemo(() => {
+    if (total > tokenBalance) {
+      return "Insufficient Balance";
+    }
+
+    if (isPending) {
+      return "Confirming in wallet...";
+    }
+
+    if (isConfirming) {
+      return "Waiting for transaction to be included...";
+    }
+
+    if (isConfirmed) {
+      return "Transaction confirmed";
+    }
+
+    if (error || isError) {
+      return "Error, see console";
+    }
+
+    return "Send Tokens";
+  }, [tokenBalance, total, isPending, isConfirming, error, isError]);
+
+  useEffect(() => {
+    const savedTokenAddress = localStorage.getItem("tokenAddress");
+    const savedRecipients = localStorage.getItem("recipients");
+    const savedAmounts = localStorage.getItem("amounts");
+
+    if (savedTokenAddress) setTokenAddress(savedTokenAddress);
+    if (savedRecipients) setRecipients(savedRecipients);
+    if (savedAmounts) setAmounts(savedAmounts);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("tokenAddress", tokenAddress);
+  }, [tokenAddress]);
+
+  useEffect(() => {
+    localStorage.setItem("recipients", recipients);
+  }, [recipients]);
+
+  useEffect(() => {
+    localStorage.setItem("amounts", amounts);
+  }, [amounts]);
 
   const getApprovedAmount = async (
     tSenderAddress: string | null
@@ -128,9 +220,42 @@ const AirdropForm = () => {
         large
       />
 
-      <Button size="lg" isLoading={isPending} disabled={!isValid}>
-        Send Tokens
+      <Button
+        size="lg"
+        className="text-base font-semibold"
+        onClick={handleSubmit}
+        isLoading={isPending}
+        disabled={!isValid || isPending}
+      >
+        {message}
       </Button>
+
+      <div className="p-4 border border-zinc-300 space-y-3 rounded-lg">
+        <h3 className="text-zinc-900 font-medium text-sm">
+          Transaction Details
+        </h3>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-zinc-600 text-sm">Token Name:</span>
+            <span className="text-zinc-900 text-base">
+              {contract.data && (contract.data?.[0]?.result as string)}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-zinc-600 text-sm">Amount (wei):</span>
+            <span className="text-zinc-900 text-base">
+              {total ? parseEther(total.toString()) : ""}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-zinc-600 text-sm">Amount (tokens):</span>
+            <span className="text-zinc-900 text-base">{total || ""}</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
