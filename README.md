@@ -1,5 +1,6 @@
 1. Create a basic react/nextjs application
-2. Implement this function
+2. Connect wallet with a nicer connect application
+3. Implement this function
 
 ```javascript
 function airdropERC20(
@@ -10,4 +11,11 @@ function airdropERC20(
 )
 ```
 
-3. Deploy to Fleek
+4. e2e testing
+   1. When we connect, we see the form
+   2. When disconnected, we don't
+5. Deploy to Fleek
+
+### Installing packages not in PNPM, eg:
+
+- pnpm create -D playwright@latest
