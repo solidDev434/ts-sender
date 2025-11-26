@@ -23,6 +23,7 @@ test("should show the AirdropForm when connected, otherwise, not", async ({
     basicSetup.walletPassword,
     extensionId
   );
+  console.log(metamask);
 
   await page.goto("/");
   await expect(page.getByText("please connect a wallet")).toBeVisible();
