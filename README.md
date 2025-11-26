@@ -19,3 +19,23 @@ function airdropERC20(
 ### Installing packages not in PNPM, eg:
 
 - pnpm create -D playwright@latest
+
+### Download Browsers (Step 2)
+
+- pnpm exec playwright install
+
+### Running Playwrite via GUI
+
+- pnpm exec playwright test --ui
+
+### Running Playwrite via CLI
+
+- pnpm exec playwright test
+
+### Running Playwrite via CLI with debug
+
+- pnpm exec playwright test --debug
+
+### Running Playwrite via CLI with debug and browser
+
+- pnpm exec playwright test --debug --headed
